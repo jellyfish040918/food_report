@@ -1,11 +1,14 @@
 """Build a portable static site, without publishing the raw input data."""
 import argparse
+import json
+import os
 import shutil
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--pages', action='store_true', help='Build the public, API-free GitHub Pages demo.')
+parser.add_argument('--pages', action='store_true', help='Build the public product site and API-free research samples.')
 pages = parser.parse_args().pages
 OUT = ROOT / ('dist-pages' if pages else 'dist')
 if pages and OUT.exists():
@@ -18,17 +21,25 @@ for name in ['index.html']:
     html = (ROOT / name).read_text(encoding='utf-8')
     if pages:
         html = html.replace('./src/app.mjs', './src/preview.mjs')
-        html = html.replace('</head>', '  <meta name="flavo-mode" content="public-preview">\n  <link rel="stylesheet" href="./src/preview.css">\n</head>')
+        html = html.replace('</head>', '  <meta name="flavo-mode" content="public-preview">\n  <link rel="stylesheet" href="./src/preview.css">\n  <link rel="stylesheet" href="./src/marketing.css">\n</head>')
     (OUT / name).write_text(html, encoding='utf-8')
 target = OUT / 'src'
 target.mkdir(exist_ok=True)
 assets = ['engine.mjs', 'i18n.mjs', 'icons.mjs', 'views.mjs', 'figures.mjs', 'report-en.mjs', 'styles.css', 'theme.css', 'agent.css', 'saas.css', 'method.mjs', 'studio.css', 'shutterstock_1867661479.jpg', '1.png', '2.png', '3.png', '6.png', '9.png']
 assets += ['corporate.css', 'presentation.mjs']
-assets += ['preview.mjs', 'preview.css'] if pages else ['app.mjs', 'chat.mjs', 'agent.mjs', 'service.mjs', 'account.mjs']
+assets += ['preview.mjs', 'preview.css', 'marketing.mjs', 'marketing.css', 'portal.mjs'] if pages else ['app.mjs', 'chat.mjs', 'agent.mjs', 'service.mjs', 'account.mjs', 'entry.mjs']
 for name in assets:
     shutil.copy2(ROOT / 'src' / name, target / name)
 (target / 'generated').mkdir(exist_ok=True)
 shutil.copy2(ROOT / 'src' / 'generated' / 'data.json', target / 'generated' / 'data.json')
+if pages:
+    # This is a public navigation origin, never an API key or a cross-origin auth endpoint.
+    app_url = os.getenv('FLAVO_APP_URL', '').strip().rstrip('/')
+    if app_url:
+        url = urlparse(app_url)
+        if url.scheme != 'https' or not url.hostname or url.username or url.password or url.path or url.query or url.fragment:
+            raise ValueError('FLAVO_APP_URL must be an HTTPS origin without path, credentials, query or fragment.')
+    (target / 'generated' / 'site-config.json').write_text(json.dumps({'appUrl': app_url}), encoding='utf-8')
 (target / 'geo').mkdir(exist_ok=True)
 shutil.copy2(ROOT / 'src' / 'geo' / 'world.json', target / 'geo' / 'world.json')
 (OUT / '.nojekyll').touch()

@@ -56,6 +56,8 @@ def create_app(settings=None):
     async def boundary(request,call_next):
         request.state.request_id=uid();host=request.url.hostname
         allowed={urlparse(cfg.origin).hostname} if cfg.production else {'127.0.0.1','localhost','::1','testserver'}
+        if cfg.production and cfg.railway and request.url.path == '/api/health' and request.method == 'GET':
+            allowed.add('healthcheck.railway.app')
         if host not in allowed:return JSONResponse({'error':'허용되지 않은 호스트입니다.','error_en':'Host is not allowed.'},status_code=403)
         if request.url.path.startswith('/api/') and request.method not in ('GET','HEAD') and request.url.path!='/api/billing/webhook':
             origin=request.headers.get('origin','').rstrip('/');valid={cfg.origin} if cfg.production else {cfg.origin,str(request.base_url).rstrip('/')}
@@ -72,12 +74,16 @@ def create_app(settings=None):
     @app.get('/api/session')
     def session(request:Request):
         identity=auth.resolve(request,False)
-        return session_payload(identity) if identity else {'authenticated':False,'demoAvailable':not cfg.production}
+        result=session_payload(identity) if identity else {'authenticated':False,'demoAvailable':not cfg.production}
+        result['signupAvailable']=cfg.launch_mode == 'saas'
+        result['launchMode']=cfg.launch_mode
+        return result
     @app.post('/api/auth/demo')
     async def demo(request:Request):
         await body(request);store.throttle(clientkey(request,'demo'),20);identity=auth.demo();response=JSONResponse({'ok':True});auth.issue(identity,response);return response
     @app.post('/api/auth/register')
     async def register(request:Request):
+        if cfg.launch_mode == 'private-pilot':raise Problem(403,'signup_closed','비공개 테스트 운영 중입니다. 발급받은 계정으로 로그인해 주세요.','Registration is closed during the private pilot. Sign in with your provisioned account.')
         store.throttle(clientkey(request,'signup'),5,3600);payload=await body(request);account=await asyncio.to_thread(auth.create,payload)
         if cfg.production:
             token=auth.token('verify',account,86400);await asyncio.to_thread(auth.mail,account['email'],'verify',token)
@@ -97,6 +103,7 @@ def create_app(settings=None):
         account=auth.consume(payload.get('token'),'verify',operation);response=JSONResponse({'ok':True});auth.issue(account,response);return response
     @app.post('/api/auth/email')
     async def send_link(request:Request):
+        if cfg.launch_mode == 'private-pilot':raise Problem(503,'email_unavailable','비공개 테스트 계정 복구는 운영자에게 문의해 주세요.','Contact the operator to recover your private pilot account.')
         store.throttle(clientkey(request,'email'),5,3600);payload=await body(request);address=email(payload.get('email'));purpose=payload.get('purpose')
         if purpose not in ('verify','reset'):raise Problem(422,'purpose','요청을 확인해 주세요.','Invalid request.')
         store.throttle('email:'+address,3,3600);row=store.one('SELECT id,verified FROM users WHERE email=?',(address,))

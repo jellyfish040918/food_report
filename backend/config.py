@@ -9,10 +9,14 @@ load_dotenv(ROOT / '.env', override=False)
 
 @dataclass
 class Settings:
+    launch_mode: str = field(default_factory=lambda: os.getenv('FLAVO_LAUNCH_MODE', 'saas'))
     production: bool = field(default_factory=lambda: os.getenv('FLAVO_ENV') == 'production')
     origin: str = field(default_factory=lambda: os.getenv('FLAVO_PUBLIC_URL', 'http://127.0.0.1:4175').rstrip('/'))
     database: str = field(default_factory=lambda: os.getenv('FLAVO_DATABASE', str(ROOT / 'var/flavo.sqlite3')))
     model: str = field(default_factory=lambda: os.getenv('FLAVO_MODEL', 'qwen3.5:9b'))
+    model_keep_alive: str = field(default_factory=lambda: os.getenv('FLAVO_MODEL_KEEP_ALIVE', '5m'))
+    model_context: int = field(default_factory=lambda: int(os.getenv('FLAVO_MODEL_CONTEXT', '16384')))
+    railway: bool = field(default_factory=lambda: bool(os.getenv('RAILWAY_ENVIRONMENT_ID')))
     ollama: str = field(default_factory=lambda: os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434').rstrip('/'))
     stripe_key: str = field(default_factory=lambda: os.getenv('STRIPE_SECRET_KEY', ''))
     stripe_webhook: str = field(default_factory=lambda: os.getenv('STRIPE_WEBHOOK_SECRET', ''))
@@ -25,14 +29,20 @@ class Settings:
     run_worker: bool = True
 
     def validate(self):
+        if self.launch_mode not in ('saas', 'private-pilot'):
+            raise RuntimeError('FLAVO_LAUNCH_MODE must be saas or private-pilot.')
+        if not 4096 <= self.model_context <= 16384:
+            raise RuntimeError('FLAVO_MODEL_CONTEXT must be between 4096 and 16384.')
         url=urlparse(self.origin)
         if url.scheme not in ('http','https') or not url.hostname or url.username or url.password or url.path not in ('','/') or url.query or url.fragment:
             raise RuntimeError('FLAVO_PUBLIC_URL must be an origin without credentials or path.')
         if self.production and url.scheme!='https':
             raise RuntimeError('Production requires an HTTPS FLAVO_PUBLIC_URL.')
-        if self.production and (not self.smtp_host or not self.mail_from):
+        if self.production and self.launch_mode == 'saas' and (not self.smtp_host or not self.mail_from):
             raise RuntimeError('Production signup requires SMTP_HOST and MAIL_FROM for verification and recovery.')
-        if self.production and not all([self.stripe_key,self.stripe_webhook,*self.prices.values()]):
+        if self.production and self.launch_mode == 'saas' and not all([self.stripe_key,self.stripe_webhook,*self.prices.values()]):
             raise RuntimeError('Production subscriptions require Stripe secret, webhook secret and both Price IDs.')
+        if self.launch_mode == 'private-pilot' and any([self.stripe_key,self.stripe_webhook,*self.prices.values()]):
+            raise RuntimeError('Private pilot does not accept subscription billing. Use saas mode to enable billing.')
 
 PLANS = {'trial':{'runs':5,'seats':1},'starter':{'runs':30,'seats':3},'team':{'runs':100,'seats':10},'demo':{'runs':100,'seats':10}}

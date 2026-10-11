@@ -7,9 +7,9 @@ import {icon} from './icons.mjs';
 export function researchHero(data,{workspace=false}={}){
   return `<section class="research-hero ${workspace?'research-hero-compact':''}" aria-labelledby="research-heading">
     <div class="research-copy"><span class="eyebrow">FOOD MARKET INTELLIGENCE</span>
-      <h1 id="research-heading">${t('식품의 다음 시장,<br><span>근거에서 시작합니다.</span>','Your next food market.<br><span>Grounded in evidence.</span>')}</h1>
-      <p>${t('소비자의 관심을 읽고, 현지화의 방향을 찾습니다. <br>시장 탐색부터 실행 계획까지, 식품 기업을 위한 리서치.','Understand consumer interest. Shape your localization strategy. <br>Research for food businesses, from market discovery to an actionable plan.')}</p>
-      <div class="research-actions"><a class="button primary" href="#market-evidence">${t('시장 데이터 살펴보기','Explore market data')}${icon('arrow')}</a><button class="button secondary" data-action="${workspace?'new-report':'sample-report'}">${t(workspace?'전략 보고서 작성':'샘플 보고서 보기',workspace?'Create a strategy report':'View a sample report')}</button></div>
+      <h1 id="research-heading">${t('해외 시장을 묻고,<br><span>다음 전략을 만드세요.</span>','Ask about your market.<br><span>Build your next move.</span>')}</h1>
+      <p>${t('AI 채팅으로 근거 있는 답변을 찾고, 기업 맞춤 보고서로 정리하세요. <br>식품 기업의 시장 탐색부터 현지화 실행 계획까지.','Find answers with evidence. Turn them into a report for your business. <br>Food market research, from your first question to a localization plan.')}</p>
+      <div class="research-actions"><a class="button primary" href="#ask">${t('AI 채팅 시작','Start AI chat')}${icon('arrow')}</a><button class="button secondary" data-action="new-report">${t('맞춤 보고서 작성','Create a custom report')}</button></div>
       <span class="research-caption">${t('검색 트렌드 · 레시피 · 소비자 리뷰','Search trends · Recipes · Consumer reviews')}</span>
     </div>
     <figure class="research-visual"><img src="./src/shutterstock_1867661479.jpg" width="2048" height="1093" fetchpriority="high" alt="${t('다양한 한식을 함께 나누는 식탁 일러스트','An illustrated table of Korean food shared together')}">

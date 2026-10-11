@@ -54,6 +54,8 @@ class Model:
             return details
     async def generate(self,context,kind='report'):
         details=await self.details();payload=legacy.chat_options(self.settings.model,details,context)
+        payload['keep_alive']=self.settings.model_keep_alive
+        payload['options']['num_ctx']=self.settings.model_context
         if kind=='ask':
             payload['format']=qa.answer_schema(context);payload['options']['num_predict']=3500
             system=qa.QA_SYSTEM.replace('한국어로 간결하게 답하세요.','Respond concisely in English only.') if context.get('language')=='en' else qa.QA_SYSTEM
