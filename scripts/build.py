@@ -23,6 +23,7 @@ for name in ['index.html']:
 target = OUT / 'src'
 target.mkdir(exist_ok=True)
 assets = ['engine.mjs', 'i18n.mjs', 'icons.mjs', 'views.mjs', 'figures.mjs', 'report-en.mjs', 'styles.css', 'theme.css', 'agent.css', 'saas.css', 'method.mjs', 'studio.css', 'shutterstock_1867661479.jpg', '1.png', '2.png', '3.png', '6.png', '9.png']
+assets += ['corporate.css', 'presentation.mjs']
 assets += ['preview.mjs', 'preview.css'] if pages else ['app.mjs', 'chat.mjs', 'agent.mjs', 'service.mjs', 'account.mjs']
 for name in assets:
     shutil.copy2(ROOT / 'src' / name, target / name)
