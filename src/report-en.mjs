@@ -1,0 +1,33 @@
+import {englishLabel as name,productsEn} from './i18n.mjs';
+const n=(v,d=0)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:d}).format(v);
+export function englishEvidence(data,profile,e) {
+  const {product,stats,regions,region,cuisine,food}=e,p=productsEn[product.id],market=name(profile.market);
+  const mentions=Object.entries(food.mentions).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const facts=[
+    ['Global search interest',stats.current===null?'No time series is available.':`${p} has a recent complete 12-month mean index of ${n(stats.current,1)}/100. ${stats.growth===null?'A valid year-over-year change cannot be calculated.':`Change versus the preceding 12 months: ${stats.growth>=0?'+':''}${n(stats.growth,1)}%.`}`,'Worldwide relative search interest, not country growth, market size or sales.'],
+    [`Search interest in ${market}`,region?`${market}: ${region.value}/100. Rank ${1+regions.filter(r=>r.value>region.value).length} among ${regions.length} observed overseas regions (shared ranks for ties).`:`No observation for ${market}. This does not mean no demand.`,'Normalized relative to all searches within each region; not absolute search volume across countries.'],
+    ['Local ingredient context',cuisine?`${n(cuisine.count)} ${profile.market==='미국'?'Southern US':market} cuisine recipes include ${cuisine.ingredients.slice(0,3).map(i=>`${i.name} (${i.percent}%)`).join(', ')}.`:`No matching cuisine sample for ${market}. Local research is needed.`,'Recipe occurrence is not consumer preference. US recipes cover Southern US cuisine only.'],
+    ['Restaurant review experiences',`Across ${n(data.reviews.count)} restaurant reviews: price appears in ${n(data.reviews.mentions['가격']||0)} and texture in ${n(data.reviews.mentions['식감']||0)}.`,'English keyword occurrences, not sentiment or target-market consumer findings.'],
+    [`${p} recipe context`,`${n(food.recipeCount)} of ${n(data.recipes.count)} Food.com recipes match this product. Common ingredients: ${food.ingredients.slice(0,3).map(i=>`${i.name} (${n(i.count)} recipes)`).join(', ')||'no sample'}.`,'Groups match names, categories and keywords and may overlap. Rice cakes include mochi and other countries’ dishes.'],
+    [`Reviews linked to ${p}`,`The full ${n(data.foodcom.count)}-review dataset (2000–2020) was joined by RecipeId. ${p}: ${n(food.reviewCount)} reviews across ${n(food.reviewedRecipeCount)} reviewed recipes. ${food.meanRating===null?'No valid 1–5 ratings.':`Mean ${n(food.meanRating,2)}/5 from ${n(food.ratedCount)} valid ratings.`}`,'Only ratings 1–5 enter the mean. Historical sample; reviewer countries are unavailable.'],
+    [`${p} review keywords`,mentions.length?`Of ${n(food.reviewCount)} reviews: ${mentions.slice(0,4).map(([k,v])=>`${name(k)} ${n(v)} (${n(v/food.reviewCount*100,1)}%)`).join(', ')}. One count per keyword per review; categories may overlap.`:'No matching keywords. Expand the sample or conduct interviews.','Keyword presence is not sentiment, preference or purchase intent. No country-level segmentation.'],
+    ['Exploratory taste sample',`Of ${n(data.flavors.valid)} valid FlavorSense records, ${n(data.flavors.tastes.Sweet||0)} are Sweet and ${n(data.flavors.tastes.Spicy||0)} are Spicy.`,'Geography, collection period and sampling design are unknown. Do not infer national taste preferences.'],
+  ];
+  return e.facts.map((f,i)=>({...f,title:facts[i][0],text:facts[i][1],caution:facts[i][2]}));
+}
+export function englishReport(r,e,ai) {
+  const p=productsEn[e.product.id],market=name(r.profile.market),channel=name(r.profile.channel);
+  return {...r,language:'en',title:`${p} · ${market} market entry`,summary:ai?.summary||`An evidence-led entry plan for ${r.profile.company}'s ${p}. Review observed search, recipe and review data, then validate localization ideas through local experiments.`,
+    localization:ai?.localization||[
+      {title:'Taste & texture',evidenceIds:['E3','E7'],hypothesis:'Use cuisine ingredients and product review keywords as interview prompts. Compare the current recipe with a localized variant; preference has not been established.',experiment:'Run a blind tasting; record purchase intent and reasons for rejection.'},
+      {title:'Packaging & occasions',evidenceIds:['E5','E6','E7'],hypothesis:`Test local-language preparation guidance and usage occasions for the ${name(r.profile.format)} format.`,experiment:'Compare comprehension and purchase response with and without a preparation video.'},
+      {title:'First distribution channel',evidenceIds:['E2'],hypothesis:`Pilot ${channel} in ${market}. Confirm minimum orders and storage conditions with potential partners.`,experiment:'Measure reach costs and pilot unit economics using the same product.'}],
+    plan:ai?.plan||[
+      {period:'Days 01–30',title:'Validate local hypotheses',action:`Interview customers in ${market} and test ${p} taste, portion size and preparation.`,metric:'Tasting response, rejection reasons and purchase intent'},
+      {period:'Days 31–60',title:'Test product & channel',action:`Prepare a pilot for ${channel}, product pages and a cost model including logistics and packaging.`,metric:'Conversion, contribution margin and repeat purchase intent'},
+      {period:'Days 61–90',title:'Decide on expansion',action:'Review pilot sales and feedback. Refine the product or channel if agreed targets are not met.',metric:'Agreed unit economics and customer evaluation thresholds'}],
+    risks:[...(ai?.risks||['Market size, sales and competitor prices are not included.','Verify current import, labelling and certification requirements with official local sources.']),...(!e.product.eligible?['The source query “tteokbboki” is misspelled; do not use it for growth decisions.']:[])]};
+}
+export function englishMarkdown(r) {
+  return `# ${r.title}\n\n${r.profile.company} · ${name(r.profile.market)} · Snapshot ${r.snapshotDate}\n\nGenerated with: ${r.mode==='ollama'?'FLAVO AI':'Data summary (no AI)'}\n\n## Executive summary\n${r.summary}\n\n## Observed evidence\n${r.evidence.map(e=>`### [${e.id}] ${e.title}\n${e.text}\n\nSource: ${e.source||'Not provided'}\nLimitation: ${e.caution}`).join('\n\n')}\n\n## Localization hypotheses\n${r.localization.map(l=>`### ${l.title}\n${l.hypothesis}\n\nExperiment: ${l.experiment}\nEvidence: ${l.evidenceIds.join(', ')}`).join('\n\n')}\n\n## 90-day action plan\n${r.plan.map(p=>`### ${p.period} · ${p.title}\n${p.action}\n\nMeasure: ${p.metric}`).join('\n\n')}\n\n## Further validation\n${r.risks.map(x=>`- ${x}`).join('\n')}\n\nAI suggestions require review. Citation validation does not guarantee factual accuracy.\n`;
+}

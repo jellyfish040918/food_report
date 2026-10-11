@@ -1,0 +1,14 @@
+dist/
+data/
+node_modules/
+__pycache__/
+.env
+.env.*
+!.env.example
+.tmp/
+*.log
+.venv/
+var/
+*.sqlite3*
+# Local design references are not application assets.
+*.pptx

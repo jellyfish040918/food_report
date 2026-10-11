@@ -1,0 +1,51 @@
+# One API/worker replica only. Web/model ports are not published.
+services:
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      FLAVO_DOMAIN: ${FLAVO_DOMAIN:?Set FLAVO_DOMAIN in .env}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [edge, proxy_api]
+    depends_on:
+      web:
+        condition: service_healthy
+  web:
+    build: .
+    restart: unless-stopped
+    stop_grace_period: 20s
+    env_file: .env
+    environment:
+      FLAVO_ENV: production
+      FLAVO_PUBLIC_URL: https://${FLAVO_DOMAIN:?Set FLAVO_DOMAIN}
+      FLAVO_DATABASE: /app/var/flavo.sqlite3
+      OLLAMA_HOST: http://model:11434
+      # No public access to this service; only the dedicated Caddy network is trusted.
+      FORWARDED_ALLOW_IPS: 172.30.42.0/24
+    volumes: [flavo_data:/app/var]
+    networks: [proxy_api, inference, outbound]
+    depends_on: [model]
+  model:
+    image: ${OLLAMA_IMAGE:?Set a tested OLLAMA_IMAGE}
+    restart: unless-stopped
+    volumes: [model_data:/root/.ollama]
+    networks: [inference, outbound]
+networks:
+  edge: {}
+  outbound: {}
+  proxy_api:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.42.0/24
+  inference:
+    internal: true
+volumes:
+  flavo_data: {}
+  model_data: {}
+  caddy_data: {}
+  caddy_config: {}

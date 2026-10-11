@@ -1,0 +1,13 @@
+.git
+.venv
+.env
+.env.*
+data
+dist
+var
+.tmp
+node_modules
+**/__pycache__
+**/*.sqlite3*
+**/*.log
+**/*.pptx
