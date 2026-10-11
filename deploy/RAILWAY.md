@@ -10,8 +10,21 @@ The account's compute hard limit is **$10 per billing cycle**, with an $8 alert.
 
 | Service | Source/config | Networking | Storage |
 | --- | --- | --- | --- |
-| food_report | This repository / `/railway.toml` | Railway HTTPS domain, target 4175 | Volume mounted at `/app/var` |
-| flavo-model | This repository / `/deploy/model.railway.toml` | Private only, port 11434; no public domain or TCP proxy | Qwen weights included in image; no model volume required |
+| food_report | This repository / `Dockerfile` | Railway HTTPS domain, target 4175 | Volume mounted at `/app/var` |
+| flavo-model | This repository / `deploy/model.Dockerfile` | Private only, port 11434; no public domain or TCP proxy | Qwen weights included in image; no model volume required |
+
+Configure each service in Railway Settings. New services cannot opt into the deprecated `railway.toml` format, so no legacy config file is shipped. Keep the repository root as the build context for both services.
+
+| Setting | food_report | flavo-model |
+| --- | --- | --- |
+| Dockerfile Path | `Dockerfile` | `deploy/model.Dockerfile` |
+| Custom Start Command | `python scripts/railway_start.py` | `ollama serve` |
+| Healthcheck Path | `/api/health` | `/api/tags` |
+| Healthcheck Timeout | 120 seconds | 120 seconds |
+| Restart policy | On Failure, 3 retries | On Failure, 2 retries |
+| Replicas | 1 | 1 |
+
+Set model variable `PORT=11434` for its internal healthcheck; it does not create a public domain. For GitHub URL imports without app access, check for updates and deploy the latest commit explicitly. Confirm the deployment's source commit before testing. Future project-level automation can use [Railway Infrastructure as Code](https://docs.railway.com/infrastructure-as-code); do not assume that pushing a legacy config file changes the service settings.
 
 Use one replica for each service in the same project/environment. The model image downloads the official model during the build and fails if the download fails. It does not download models on customer requests. The 6.5 GB weights exceed Hobby's default 5 GB volume allowance; the image uses the plan's ephemeral disk instead. The web volume preserves accounts, jobs and reports across redeployments.
 

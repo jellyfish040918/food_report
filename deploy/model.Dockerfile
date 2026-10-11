@@ -7,3 +7,5 @@ RUN ollama serve > /tmp/model-build.log 2>&1 & pid=$!; \
     n=0; until ollama list >/dev/null 2>&1; do n=$((n+1)); [ "$n" -lt 30 ] || exit 1; sleep 1; done; \
     ollama pull "$FLAVO_MODEL"
 EXPOSE 11434
+ENTRYPOINT []
+CMD ["ollama", "serve"]
