@@ -38,7 +38,10 @@ assert headers['Cache-Control']=='no-store'
 assert 'max-age=' in headers['Strict-Transport-Security']
 assert "frame-ancestors 'none'" in headers['Content-Security-Policy']
 session,_=request('/api/session')
-assert json.loads(session)=={'authenticated':False,'demoAvailable':False}
+assert json.loads(session)=={
+    'authenticated':False,'demoAvailable':False,
+    'signupAvailable':True,'launchMode':'saas',
+}
 request('/api/reports',401)
 request('/api/jobs',401)
 request('/api/auth/demo',404,data={},extra={'Origin':origin})
