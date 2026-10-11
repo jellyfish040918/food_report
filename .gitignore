@@ -1,4 +1,5 @@
 dist/
+dist-pages/
 data/
 node_modules/
 __pycache__/

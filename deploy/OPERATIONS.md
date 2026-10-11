@@ -8,7 +8,13 @@
 
 2026-10-11 게시 전 검사에서는 Node 테스트 13개와 Python 테스트 63개, 의존성 검사, 정적 빌드, 임시 DB를 사용하는 별도 운영 모드 서버의 기동·인증 경계·서버 데이터 도구를 확인했습니다. SMTP는 인증서와 호스트 이름을 검증하는 TLS 컨텍스트를 사용하며, 인증서 검증 실패 시 로그인과 전송을 중단하는 테스트를 포함합니다. 백업은 새 DB 경로에서 무결성·작업·보고서 복원을 검증했습니다. 메일과 Stripe 테스트는 모의 서버/응답을 사용하므로 실제 외부 서비스 연동 성공을 의미하지 않습니다.
 
-2026-10-11 GitHub Actions [릴리스 검사 #1](https://github.com/jellyfish040918/food_report/actions/runs/38130602078)이 커밋 `f291629`에서 성공했습니다. 단위 테스트 76개와 빌드 후 Docker 이미지를 만들고 외부 네트워크가 없는 컨테이너에서 `scripts/container_smoke.py`를 실행했습니다. 이 워크플로는 검사·빌드용이며 고객용 서버 배포를 자동으로 수행하지 않습니다.
+2026-10-11 GitHub Actions [릴리스 검사 #1](https://github.com/jellyfish040918/food_report/actions/runs/38130602078)이 커밋 `f291629`에서 성공했습니다. 단위 테스트 76개와 빌드 후 Docker 이미지를 만들고 외부 네트워크가 없는 컨테이너에서 `scripts/container_smoke.py`를 실행했습니다. 이후 공개 데모용 빌드 격리·보고서 검사를 추가했습니다. `main`에서 검사에 성공하면 Pages 공개 데모를 게시하며, 고객용 SaaS 서버 배포는 자동으로 수행하지 않습니다.
+
+## GitHub Pages 공개 데모
+
+접속 주소는 **https://jellyfish040918.github.io/food_report/** 입니다. 저장소 Settings → Pages의 Source는 GitHub Actions로 설정합니다. `.github/workflows/deploy.yml`의 `pages` 작업은 `build`와 `container` 성공 후 실행되며, 배포에 필요한 권한은 해당 작업에만 부여합니다. PR에서는 게시하지 않습니다.
+
+`python scripts/build.py --pages`는 `dist-pages`만 초기화한 뒤 공개 자산 목록을 복사합니다. `src/preview.mjs`가 실제 집계·지도·한영 샘플 보고서를 브라우저에서 계산하며 `/api`, 로컬 모델, 인증, 결제, 서버 저장을 호출하지 않습니다. 샘플에는 AI 미사용과 검토 기록 미포함을 표시합니다. Pages에는 기업별 계정·DB·원본 데이터가 없고 정상 SaaS 서버는 별도 배포가 필요합니다. 서비스 API나 개인 PC의 모델 포트를 Pages에 직접 노출하는 방식으로 연결하지 않습니다.
 
 ## 설정 파일
 

@@ -4,6 +4,14 @@
 
 현재 버전은 단일 서버에서 운영하는 초기 SaaS 구현입니다. 계정·기업 분리, 영속 작업 큐, 사용량 제한, Stripe Checkout/Portal/웹훅, 메일 인증과 팀 초대를 포함합니다. **실제 고객 결제·이메일·외부 배포는 운영 설정과 검증 후 활성화**해야 합니다. 운영 준비와 제한은 [배포 안내](deploy/OPERATIONS.md)를 확인하세요.
 
+## 공개 데모
+
+**[FLAVO 웹사이트 열기](https://jellyfish040918.github.io/food_report/)**
+
+GitHub Pages에서는 로그인 없이 실제 집계 데이터, 세계지도·그래프, 데이터 출처와 한국어·영어 샘플 보고서를 볼 수 있습니다. 샘플은 브라우저에서 집계와 고정된 계획 틀로 구성하며 AI를 호출하거나 회사 정보를 수집·저장하지 않습니다. AI Q&A·기업 계정·구독·영속 보고서는 아래의 서비스 서버가 필요합니다. 공개 데모를 실제 SaaS 서비스로 표시하지 않습니다.
+
+`python scripts/build.py --pages`는 별도의 `dist-pages/`에 API 호출 없는 공개 화면만 빌드합니다. `main`의 테스트와 운영 컨테이너 검사가 통과하면 GitHub Actions가 Pages에 게시합니다. 일반 `python scripts/build.py`와 Docker는 기존 SaaS 앱을 빌드합니다. 원본 자료·계정 DB·비밀 설정은 두 빌드 모두 제외됩니다.
+
 ## 로컬 실행
 
 Python 3.13, Node.js 22 이상, 설치된 Ollama와 `qwen3.5:9b`가 필요합니다. 브라우저에는 엔진 브랜드나 모델 선택기를 표시하지 않습니다.

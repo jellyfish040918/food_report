@@ -4,6 +4,7 @@
 .env.*
 data
 dist
+dist-pages
 var
 .tmp
 node_modules
