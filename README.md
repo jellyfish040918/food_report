@@ -119,4 +119,4 @@ node --test tests/*.test.mjs
 
 자동 검증은 실제 집계 자료와 임시 DB, 통제된 모델·Stripe 응답을 사용합니다. GPU·실제 카드 결제를 실행하지 않습니다. 실제 결제와 SMTP 전송은 각 운영 계정의 테스트 환경에서 별도로 확인해야 합니다.
 
-저장소는 [jellyfish040918/food_report](https://github.com/jellyfish040918/food_report)입니다. GitHub Actions는 테스트·빌드 결과를 보관합니다. **이 버전은 서버 계정과 작업 큐가 필요하므로 GitHub Pages 단독 배포 대상이 아닙니다.** 포함된 Docker/Caddy 구성을 사용하는 서버에 배포합니다. 현재 PC에는 Docker가 없어 컨테이너 실행은 검증하지 않았습니다. 자세한 명령, Stripe 설정, 백업·복구와 출시 점검은 [운영 안내](deploy/OPERATIONS.md)에 있습니다.
+저장소는 [jellyfish040918/food_report](https://github.com/jellyfish040918/food_report)입니다. 2026-10-11 [GitHub Actions 릴리스 검사](https://github.com/jellyfish040918/food_report/actions/runs/38130602078)에서 테스트 76개, 웹 빌드, Linux Docker 이미지 빌드와 격리된 운영 모드 기동·접근 권한·데이터 도구 검사가 통과했습니다. **이 버전은 서버 계정과 작업 큐가 필요하므로 GitHub Pages 단독 배포 대상이 아닙니다.** 고객용 서버는 아직 배포하지 않았으며, 포함된 Docker/Caddy 구성을 운영 환경에서 설정해야 합니다. 전체 Compose의 HTTPS·모델·외부 결제·메일 실연동은 별도 검증이 필요합니다. 자세한 명령, Stripe 설정, 백업·복구와 출시 점검은 [운영 안내](deploy/OPERATIONS.md)에 있습니다.
