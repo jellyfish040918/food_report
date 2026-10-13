@@ -39,6 +39,8 @@ FLAVO_DATABASE=/app/var/flavo.sqlite3
 FLAVO_MODEL=qwen3.5:9b
 FLAVO_MODEL_CONTEXT=8192
 FLAVO_MODEL_KEEP_ALIVE=0
+FLAVO_MODEL_THREADS=8
+FLAVO_MODEL_TIMEOUT=600
 OLLAMA_HOST=http://flavo-model.railway.internal:11434
 PORT=4175
 RAILWAY_RUN_UID=0
@@ -50,6 +52,8 @@ Set `FLAVO_PILOT_PASSWORD` directly in the provider's secret Variables UI (12–
 The pilot account is created only when the database has no users. A restart or an edited password variable never resets an existing password. After the account has been verified by signing in, remove the bootstrap password variable from Railway. Keep a backup and an operator recovery procedure before expanding the pilot.
 
 Use the model service's actual private domain if it differs from `flavo-model.railway.internal`. Set model replica memory to the Hobby maximum (currently shown as 8 GB in this account). A larger context or additional parallel generations may exceed that. Model keep-alive is zero and parallel generation is one to reduce idle memory; this adds cold-load latency. Measure actual usage before expanding access. CPU response times and peak memory must be verified on the deployed instance.
+
+Set `FLAVO_MODEL_THREADS` to the model container's CPU allowance. The first cloud test auto-selected 48 host threads despite an 8-vCPU allocation and hit the five-minute request timeout. The web adapter now passes an explicit eight-thread limit, with a bounded 600-second inference timeout for this CPU pilot. The worker deadline follows that limit plus 30 seconds for evidence and report composition. Failed or cancelled jobs still refund their usage reservation.
 
 ## Publish the entry point
 

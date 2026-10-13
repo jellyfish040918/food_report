@@ -16,6 +16,8 @@ class Settings:
     model: str = field(default_factory=lambda: os.getenv('FLAVO_MODEL', 'qwen3.5:9b'))
     model_keep_alive: str = field(default_factory=lambda: os.getenv('FLAVO_MODEL_KEEP_ALIVE', '5m'))
     model_context: int = field(default_factory=lambda: int(os.getenv('FLAVO_MODEL_CONTEXT', '16384')))
+    model_threads: int = field(default_factory=lambda: int(os.getenv('FLAVO_MODEL_THREADS', '8' if os.getenv('RAILWAY_ENVIRONMENT_ID') else '0')))
+    model_timeout: int = field(default_factory=lambda: int(os.getenv('FLAVO_MODEL_TIMEOUT', '300')))
     railway: bool = field(default_factory=lambda: bool(os.getenv('RAILWAY_ENVIRONMENT_ID')))
     ollama: str = field(default_factory=lambda: os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434').rstrip('/'))
     stripe_key: str = field(default_factory=lambda: os.getenv('STRIPE_SECRET_KEY', ''))
@@ -33,6 +35,10 @@ class Settings:
             raise RuntimeError('FLAVO_LAUNCH_MODE must be saas or private-pilot.')
         if not 4096 <= self.model_context <= 16384:
             raise RuntimeError('FLAVO_MODEL_CONTEXT must be between 4096 and 16384.')
+        if not 0 <= self.model_threads <= 64:
+            raise RuntimeError('FLAVO_MODEL_THREADS must be between 0 (automatic) and 64.')
+        if not 60 <= self.model_timeout <= 900:
+            raise RuntimeError('FLAVO_MODEL_TIMEOUT must be between 60 and 900 seconds.')
         url=urlparse(self.origin)
         if url.scheme not in ('http','https') or not url.hostname or url.username or url.password or url.path not in ('','/') or url.query or url.fragment:
             raise RuntimeError('FLAVO_PUBLIC_URL must be an origin without credentials or path.')

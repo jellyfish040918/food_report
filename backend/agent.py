@@ -56,11 +56,14 @@ class Model:
         details=await self.details();payload=legacy.chat_options(self.settings.model,details,context)
         payload['keep_alive']=self.settings.model_keep_alive
         payload['options']['num_ctx']=self.settings.model_context
+        # Containers can see many more host cores than their CPU quota permits.
+        if self.settings.model_threads:
+            payload['options']['num_thread']=self.settings.model_threads
         if kind=='ask':
             payload['format']=qa.answer_schema(context);payload['options']['num_predict']=3500
             system=qa.QA_SYSTEM.replace('한국어로 간결하게 답하세요.','Respond concisely in English only.') if context.get('language')=='en' else qa.QA_SYSTEM
             payload['messages']=[{'role':'system','content':system},{'role':'user','content':json.dumps(context,ensure_ascii=False)}]
-        async with httpx.AsyncClient(timeout=httpx.Timeout(300,connect=10),trust_env=False) as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(self.settings.model_timeout,connect=10),trust_env=False) as client:
             response=await client.post(self.settings.ollama+'/api/chat',json=payload);response.raise_for_status();result=response.json()
         if result.get('done_reason')=='length':raise RuntimeError('output_truncated')
         return json.loads(result['message']['content'])
@@ -98,7 +101,7 @@ class Runner:
                 await asyncio.wait([task],timeout=.5)
                 row=self.store.one('SELECT status FROM jobs WHERE id=?',(job['id'],))
                 if row['status']=='cancelling':task.cancel();await asyncio.gather(task,return_exceptions=True);self.store.finish(job,error='cancelled');return
-                if time.monotonic()-start>330:task.cancel();await asyncio.gather(task,return_exceptions=True);self.store.finish(job,error='timeout');return
+                if time.monotonic()-start>self.settings.model_timeout+30:task.cancel();await asyncio.gather(task,return_exceptions=True);self.store.finish(job,error='timeout');return
             result=task.result();self.store.finish(job,result=result)
         except asyncio.CancelledError:
             task.cancel();await asyncio.gather(task,return_exceptions=True);self.store.finish(job,error='worker_restarted');raise
