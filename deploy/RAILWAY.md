@@ -18,7 +18,7 @@ Configure each service in Railway Settings. New services cannot opt into the dep
 | Setting | food_report | flavo-model |
 | --- | --- | --- |
 | Dockerfile Path | `Dockerfile` | `deploy/model.Dockerfile` |
-| Custom Start Command | `python scripts/railway_start.py` | `ollama serve` |
+| Custom Start Command | `python scripts/railway_start.py` | `/bin/sh /opt/flavo/start-model.sh` |
 | Healthcheck Path | `/api/health` | `/api/tags` |
 | Healthcheck Timeout | 120 seconds | 120 seconds |
 | Restart policy | On Failure, 3 retries | On Failure, 2 retries |
@@ -27,6 +27,8 @@ Configure each service in Railway Settings. New services cannot opt into the dep
 Set model variable `PORT=11434` for its internal healthcheck; it does not create a public domain. For GitHub URL imports without app access, check for updates and deploy the latest commit explicitly. Confirm the deployment's source commit before testing. Future project-level automation can use [Railway Infrastructure as Code](https://docs.railway.com/infrastructure-as-code); do not assume that pushing a legacy config file changes the service settings.
 
 Use one replica for each service in the same project/environment. The model image downloads the official model during the build and fails if the download fails. It does not download models on customer requests. The 6.5 GB weights exceed Hobby's default 5 GB volume allowance; the image uses the plan's ephemeral disk instead. The web volume preserves accounts, jobs and reports across redeployments.
+
+The model image pins `OLLAMA_MODELS=/opt/flavo/models` for both build and runtime, independently of the container user's home. A second build layer verifies the manifest and blob files persisted, and the startup script refuses to listen if they are missing. `OLLAMA_NO_CLOUD=1` keeps inference on this private service. A successful `/api/tags` response alone does not prove the requested model is installed; verify the exact model through the authenticated web status and a real generation.
 
 ## Web variables
 
