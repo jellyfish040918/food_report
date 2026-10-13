@@ -39,7 +39,7 @@ if pages:
         url = urlparse(app_url)
         if url.scheme != 'https' or not url.hostname or url.username or url.password or url.path or url.query or url.fragment:
             raise ValueError('FLAVO_APP_URL must be an HTTPS origin without path, credentials, query or fragment.')
-    (target / 'generated' / 'site-config.json').write_text(json.dumps({'appUrl': app_url}), encoding='utf-8')
+    (target / 'generated' / 'site-config.json').write_text(json.dumps({'appUrl': app_url, 'launchMode': 'saas' if os.getenv('FLAVO_SITE_LAUNCH_MODE') == 'saas' else 'private-pilot'}), encoding='utf-8')
 (target / 'geo').mkdir(exist_ok=True)
 shutil.copy2(ROOT / 'src' / 'geo' / 'world.json', target / 'geo' / 'world.json')
 (OUT / '.nojekyll').touch()

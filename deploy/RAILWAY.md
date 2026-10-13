@@ -55,6 +55,8 @@ Use the model service's actual private domain if it differs from `flavo-model.ra
 
 After **real authenticated AI chat and report generation succeed** on the Railway HTTPS domain, set GitHub repository Actions variable `FLAVO_APP_URL` to that origin and rerun the Pages workflow. Public-site feature links transfer the selected feature and KO/EN preference through sign-in. Credentials and company briefs are submitted only to the authenticated service origin. Never expose port 11434 to browsers or embed credentials in public JavaScript.
 
+The public build defaults to `private-pilot`: registration buttons lead to the existing-account login and the site states that public signup and payment are unavailable. Set Actions variable `FLAVO_SITE_LAUNCH_MODE=saas` only after the backend's public signup, email and billing have been verified. This display variable does not enable those backend capabilities.
+
 Verify desktop and mobile widths, sign-in, AI answers with sources, a generated report, persistence across a redeploy and that unauthenticated API calls are denied. `/api/health` confirms the web worker and database, not model readiness; `/api/status` requires authentication and checks the installed model. A data-only fallback is explicitly labelled and does not count as a successful AI test.
 
 ## Before selling subscriptions

@@ -5,7 +5,7 @@ import {worldFigure,marketTable} from './figures.mjs';
 import {createViews} from './views.mjs';
 import {icon} from './icons.mjs';
 import {marketingHome,productTour,plansSection} from './marketing.mjs';
-import {SERVICE_VIEWS,loadServiceConfig,serviceEntry,serviceLink} from './portal.mjs';
+import {SERVICE_VIEWS,loadServiceConfig,serviceEntry,publicServiceLink} from './portal.mjs';
 
 const state={product:'kimchi',market:'일본',channel:'web',period:60,view:'dashboard',reports:[],report:null,tableExpanded:false};
 let data,geography,views,serviceConfig={appUrl:''},tourTab='ask';
@@ -27,17 +27,17 @@ function render(){
   document.title=`${titles()[state.view]} · FLAVO`;
   document.querySelector('.skip-link').textContent=t('본문으로 이동','Skip to content');
   document.body.classList.add('public-site');
-  document.querySelector('#app').innerHTML=`<header class="corporate-header"><div class="corporate-header-inner"><a class="corporate-brand" href="#dashboard" aria-label="FLAVO home"><img src="./src/9.png" width="80" height="64" alt="FLAVO"><span>FOOD MARKET<br>INTELLIGENCE</span></a><nav id="public-navigation" class="corporate-nav" aria-label="${t('주 메뉴','Main navigation')}">${[['ask',t('AI 채팅','AI chat')],['new-report',t('보고서 작성','Report builder')],['market-evidence',t('시장 탐색','Market explorer')],['plans',t('팀 플랜','Plans')]].map(([id,title])=>`<a href="#${id}" ${id===state.view?'aria-current="page"':''}>${title}</a>`).join('')}<a href="#login" class="mobile-login">${t('로그인','Sign in')}</a></nav><div class="corporate-header-actions"><div class="language-switch" role="group" aria-label="${t('언어 선택','Language')}"><button data-language="ko" aria-pressed="${getLanguage()==='ko'}">KO</button><button data-language="en" aria-pressed="${getLanguage()==='en'}">EN</button></div><a href="#login" class="header-login">${t('로그인','Sign in')}</a><a href="#register" class="button primary header-cta">${t('시작하기','Get started')}${icon('arrow')}</a><button class="icon-button public-menu" data-action="menu" aria-controls="public-navigation" aria-expanded="false" aria-label="${t('메뉴 열기','Open menu')}">${icon('menu')}</button></div></div></header><div class="public-announcement"><span>FLAVO WORKSPACE</span><p>${serviceConfig.appUrl?t('질문부터 전략 보고서까지, 기업의 리서치를 한곳에서.','From questions to strategy reports, in one research workspace.'):t('클라우드 서비스 연결 준비 중 · 공개 샘플을 먼저 살펴보세요.','Cloud service connection pending · Explore public samples while we prepare.')}</p><a href="#reports">${t('샘플 보고서 보기','View a sample report')} ↗</a></div><div class="public-content"><main id="main" tabindex="-1"></main></div><footer class="corporate-footer"><div class="corporate-footer-top"><div><b>FLAVO</b><p>${t('식품 기업의 다음 시장을 위한 리서치.','Research for your next food market.')}</p><span>LOCAL ROOTS. GLOBAL REACH.</span></div><nav aria-label="${t('하단 메뉴','Footer navigation')}"><a href="#ask">${t('AI 채팅','AI chat')}</a><a href="#new-report">${t('맞춤 보고서','Custom reports')}</a><a href="#reports">${t('샘플 보고서','Sample report')}</a><a href="#data">${t('데이터 출처','Data sources')}</a><a href="#plans">${t('팀 플랜','Plans')}</a></nav></div><div class="corporate-footer-bottom"><p>${t('출처를 확인하는 AI 채팅과 기업 맞춤 전략 보고서. 공개 샘플은 집계 데이터와 고정된 계획 틀로 구성되며, 실제 분석·계정·구독은 연결된 운영 서비스에서 제공합니다.','Evidence-based AI chat and company strategy reports. Public samples use aggregate data and a fixed template. Analysis, accounts and subscriptions run in the connected production service.')}</p><span>${t('데이터 기준','Snapshot')} ${data.snapshotDate}</span></div></footer>`;
+  document.querySelector('#app').innerHTML=`<header class="corporate-header"><div class="corporate-header-inner"><a class="corporate-brand" href="#dashboard" aria-label="FLAVO home"><img src="./src/9.png" width="80" height="64" alt="FLAVO"><span>FOOD MARKET<br>INTELLIGENCE</span></a><nav id="public-navigation" class="corporate-nav" aria-label="${t('주 메뉴','Main navigation')}">${[['ask',t('AI 채팅','AI chat')],['new-report',t('보고서 작성','Report builder')],['market-evidence',t('시장 탐색','Market explorer')],['plans',t('팀 플랜','Plans')]].map(([id,title])=>`<a href="#${id}" ${id===state.view?'aria-current="page"':''}>${title}</a>`).join('')}<a href="#login" class="mobile-login">${t('로그인','Sign in')}</a></nav><div class="corporate-header-actions"><div class="language-switch" role="group" aria-label="${t('언어 선택','Language')}"><button data-language="ko" aria-pressed="${getLanguage()==='ko'}">KO</button><button data-language="en" aria-pressed="${getLanguage()==='en'}">EN</button></div><a href="#login" class="header-login">${t('로그인','Sign in')}</a><a href="#register" class="button primary header-cta">${t('시작하기','Get started')}${icon('arrow')}</a><button class="icon-button public-menu" data-action="menu" aria-controls="public-navigation" aria-expanded="false" aria-label="${t('메뉴 열기','Open menu')}">${icon('menu')}</button></div></div></header><div class="public-announcement"><span>FLAVO WORKSPACE</span><p>${serviceConfig.appUrl?serviceConfig.launchMode!=='saas'?t('클라우드 파일럿 운영 중 · 발급된 계정으로 PC와 모바일에서 이용하세요.','Cloud pilot is live · Use your issued account on desktop or mobile.'):t('질문부터 전략 보고서까지, 기업의 리서치를 한곳에서.','From questions to strategy reports, in one research workspace.'):t('클라우드 서비스 연결 준비 중 · 공개 샘플을 먼저 살펴보세요.','Cloud service connection pending · Explore public samples while we prepare.')}</p><a href="#reports">${t('샘플 보고서 보기','View a sample report')} ↗</a></div><div class="public-content"><main id="main" tabindex="-1"></main></div><footer class="corporate-footer"><div class="corporate-footer-top"><div><b>FLAVO</b><p>${t('식품 기업의 다음 시장을 위한 리서치.','Research for your next food market.')}</p><span>LOCAL ROOTS. GLOBAL REACH.</span></div><nav aria-label="${t('하단 메뉴','Footer navigation')}"><a href="#ask">${t('AI 채팅','AI chat')}</a><a href="#new-report">${t('맞춤 보고서','Custom reports')}</a><a href="#reports">${t('샘플 보고서','Sample report')}</a><a href="#data">${t('데이터 출처','Data sources')}</a><a href="#plans">${t('팀 플랜','Plans')}</a></nav></div><div class="corporate-footer-bottom"><p>${t('출처를 확인하는 AI 채팅과 기업 맞춤 전략 보고서. 공개 샘플은 집계 데이터와 고정된 계획 틀로 구성되며, 실제 AI 분석은 연결된 클라우드 서비스에서 제공합니다. 가입·결제 가능 여부는 서비스 운영 단계에 따릅니다.','Evidence-based AI chat and company strategy reports. Public samples use aggregate data and a fixed template. AI analysis runs in the connected cloud service. Registration and billing depend on its launch stage.')}</p><span>${t('데이터 기준','Snapshot')} ${data.snapshotDate}</span></div></footer>`;
   const main=document.querySelector('#main');
-  if(state.view==='dashboard')main.innerHTML=marketingHome(data,tourTab);
-  else if(state.view==='plans')main.innerHTML=plansSection({full:true});
+  if(state.view==='dashboard')main.innerHTML=marketingHome(data,tourTab,serviceConfig);
+  else if(state.view==='plans')main.innerHTML=plansSection({full:true,...serviceConfig});
   else if(SERVICE_VIEWS.includes(state.view))main.innerHTML=serviceEntry(state.view,serviceConfig);
   else {
     if(state.view==='reports')sample();
     views.render(state.view==='market-evidence'?'dashboard':state.view);
     if(state.view==='reports')main.insertAdjacentHTML('afterbegin',scopePanel());
   }
-  if(serviceConfig.appUrl)document.querySelectorAll('a[href^="#"]').forEach(a=>{const link=serviceLink(serviceConfig.appUrl,a.hash.slice(1));if(link)a.href=link;});
+  if(serviceConfig.appUrl)document.querySelectorAll('a[href^="#"]').forEach(a=>{const link=publicServiceLink(serviceConfig,a.hash.slice(1));if(link)a.href=link;});
   window.scrollTo({top:0});
 }
 function selectMap(market){
@@ -57,7 +57,7 @@ document.addEventListener('click',event=>{
   if(el.dataset.market){state.market=el.dataset.market;location.hash='reports';render();return;}
   if(el.dataset.evidence){document.getElementById(`evidence-${el.dataset.evidence}`)?.scrollIntoView({behavior:'smooth',block:'center'});return;}
   const action=el.dataset.action;
-  if(action==='new-report'){const link=serviceLink(serviceConfig.appUrl,'new-report');if(link)location.assign(link);else location.hash='new-report';}
+  if(action==='new-report'){const link=publicServiceLink(serviceConfig,'new-report');if(link)location.assign(link);else location.hash='new-report';}
   if(['sample-report','regenerate-language'].includes(action)){location.hash='reports';render();}
   if(action==='back-reports'){location.hash='dashboard';}
   if(action==='menu'){const open=document.querySelector('#public-navigation').classList.toggle('is-open');el.setAttribute('aria-expanded',String(open));}
@@ -74,7 +74,7 @@ window.addEventListener('afterprint',()=>document.querySelectorAll('.report-docu
 function switchTour(tab){
   if(!['ask','report','team'].includes(tab))return;
   tourTab=tab;document.querySelector('#tour-container').innerHTML=productTour(data,tab);
-  if(serviceConfig.appUrl)document.querySelectorAll('#tour-container a[href^="#"]').forEach(a=>{const link=serviceLink(serviceConfig.appUrl,a.hash.slice(1));if(link)a.href=link;});
+  if(serviceConfig.appUrl)document.querySelectorAll('#tour-container a[href^="#"]').forEach(a=>{const link=publicServiceLink(serviceConfig,a.hash.slice(1));if(link)a.href=link;});
   document.querySelector(`#tour-tab-${tab}`).focus({preventScroll:true});
 }
 async function bootstrap(){

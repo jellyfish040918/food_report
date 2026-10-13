@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {serviceOrigin,serviceLink,serviceEntry} from '../src/portal.mjs';
+import {serviceOrigin,serviceLink,publicServiceLink,serviceEntry} from '../src/portal.mjs';
 import {startupEntry,entryHash} from '../src/entry.mjs';
 
 test('public workspace links use an HTTPS origin and a bounded feature intent',()=>{
@@ -22,4 +22,13 @@ test('unconnected entry offers no pretend chat form and only labels actual servi
   assert.match(pending,/클라우드 서비스 연결 대기/);assert.doesNotMatch(pending,/<form|<textarea/);
   const connected=serviceEntry('ask',{appUrl:'https://flavo.up.railway.app'});
   assert.match(connected,/https:\/\/flavo.up.railway.app/);assert.doesNotMatch(connected,/127\.0\.0\.1/);
+});
+test('pilot entry sends registration CTAs to sign-in without losing language or research intent',()=>{
+  const pilot={appUrl:'https://flavo.up.railway.app',launchMode:'private-pilot'};
+  const signup=new URL(publicServiceLink(pilot,'register','en'));
+  assert.equal(signup.hash,'#login');assert.equal(signup.searchParams.get('lang'),'en');
+  assert.equal(new URL(publicServiceLink(pilot,'new-report')).searchParams.get('start'),'new-report');
+  assert.match(serviceEntry('register',pilot),/발급받은 파일럿 계정/);
+  assert.doesNotMatch(serviceEntry('register',pilot),/이메일 인증으로 계정 생성/);
+  assert.equal(new URL(publicServiceLink({...pilot,launchMode:'saas'},'register')).hash,'#register');
 });

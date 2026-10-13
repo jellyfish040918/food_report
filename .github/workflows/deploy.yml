@@ -89,6 +89,7 @@ jobs:
       - name: Build public product site and workspace links
         env:
           FLAVO_APP_URL: ${{ vars.FLAVO_APP_URL }}
+          FLAVO_SITE_LAUNCH_MODE: ${{ vars.FLAVO_SITE_LAUNCH_MODE }}
         run: python scripts/build.py --pages
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
