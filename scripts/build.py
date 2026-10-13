@@ -1,7 +1,9 @@
 """Build a portable static site, without publishing the raw input data."""
 import argparse
+import hashlib
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 from urllib.parse import urlparse
@@ -30,6 +32,14 @@ assets += ['corporate.css', 'presentation.mjs']
 assets += ['preview.mjs', 'preview.css', 'marketing.mjs', 'marketing.css', 'portal.mjs'] if pages else ['app.mjs', 'chat.mjs', 'agent.mjs', 'service.mjs', 'account.mjs', 'entry.mjs']
 for name in assets:
     shutil.copy2(ROOT / 'src' / name, target / name)
+# Version the complete module graph together so cached imports cannot outlive
+# their API contract after a deployment. Source files remain unchanged.
+versioned = [target / name for name in assets if name.endswith(('.mjs', '.css'))]
+version = hashlib.sha256(b''.join(p.read_bytes() for p in versioned)).hexdigest()[:16]
+for path in [OUT / 'index.html', *versioned]:
+    content = path.read_text(encoding='utf-8')
+    content = re.sub(r'''(\./(?:src/)?[\w.-]+\.(?:mjs|css))(?=['"])''', lambda match: match[1] + '?v=' + version, content)
+    path.write_text(content, encoding='utf-8')
 (target / 'generated').mkdir(exist_ok=True)
 shutil.copy2(ROOT / 'src' / 'generated' / 'data.json', target / 'generated' / 'data.json')
 if pages:

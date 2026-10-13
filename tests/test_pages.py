@@ -4,6 +4,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,10 +21,13 @@ class PagesBuildTests(unittest.TestCase):
         self.assertIn('src/preview.mjs', html)
         self.assertIn('public-preview', html)
         for asset in re.findall(r'(?:src|href)="(\./[^\"]+)"', html):
-            self.assertTrue((out / asset).is_file(), asset)
+            self.assertTrue((out / urlsplit(asset).path).is_file(), asset)
+            if asset.endswith('.png'):continue
+            self.assertRegex(asset,r'\?v=[a-f0-9]{16}$')
         for module in (out / 'src').glob('*.mjs'):
             for dependency in re.findall(r"from ['\"](\./[^'\"]+)['\"]", module.read_text(encoding='utf-8')):
-                self.assertTrue((module.parent / dependency).is_file(), dependency)
+                self.assertTrue((module.parent / urlsplit(dependency).path).is_file(), dependency)
+                self.assertRegex(dependency,r'\?v=[a-f0-9]{16}$')
         for forbidden in ['backend', 'data', 'var', '.env', 'src/app.mjs', 'src/service.mjs', 'src/account.mjs', 'src/chat.mjs']:
             self.assertFalse((out / forbidden).exists(), forbidden)
         self.assertTrue((out / 'src/generated/data.json').is_file())

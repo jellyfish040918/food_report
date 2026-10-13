@@ -99,6 +99,7 @@ class SaaSTests(unittest.TestCase):
         self.assertEqual(c.get('/var/flavo.sqlite3').status_code,404)
         self.assertIn("script-src 'self'",c.get('/').headers['content-security-policy'])
         self.assertEqual(c.get('/api/session').headers['cache-control'],'no-store')
+        self.assertEqual(c.get('/').headers['cache-control'],'no-cache')
 
     def test_tenant_isolation_for_jobs_reports_review_and_switch(self):
         a,b=self.client('a@example.test'),self.client('b@example.test')

@@ -65,6 +65,7 @@ def create_app(settings=None):
         response=await call_next(request)
         response.headers.update({'X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY','X-Request-ID':request.state.request_id,'Permissions-Policy':'camera=(), microphone=(), geolocation=()','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'"})
         if request.url.path.startswith('/api/'):response.headers['Cache-Control']='no-store'
+        else:response.headers['Cache-Control']='no-cache'
         if cfg.production:response.headers['Strict-Transport-Security']='max-age=31536000; includeSubDomains'
         return response
 
