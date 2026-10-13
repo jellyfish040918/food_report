@@ -25,7 +25,7 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(server.validate_output(REPORT), REPORT)
 
     def test_rejects_missing_and_fabricated_evidence(self):
-        for bad in ['E999', 42, None]:
+        for bad in ['E999', 'E8', 42, None]:
             value = copy.deepcopy(REPORT)
             value['localization'][0]['evidenceIds'] = [bad]
             with self.assertRaises(ValueError):

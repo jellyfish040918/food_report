@@ -24,6 +24,7 @@ API_TOKEN = os.environ.get('FLAVO_API_TOKEN', '')
 ALLOWED_ORIGINS = {x.strip().rstrip('/') for x in os.environ.get('FLAVO_ALLOWED_ORIGINS', '').split(',') if x.strip()}
 GENERATION_LOCK = threading.Lock()
 EVIDENCE_IDS = [f'E{i}' for i in range(1, 9)]
+LOCALIZATION_IDS = EVIDENCE_IDS[:-1]  # E8 has no geography; never a country-strategy citation.
 DEFAULT_MODEL = 'qwen3.5:9b'
 PREFERRED_MODEL = os.environ.get('FLAVO_MODEL', '').strip() or DEFAULT_MODEL
 TEXT = {'type': 'string', 'minLength': 1, 'maxLength': 1200}
@@ -33,7 +34,7 @@ SCHEMA = {
         'summary': TEXT,
         'localization': {'type': 'array', 'minItems': 3, 'maxItems': 3, 'items': {
             'type': 'object', 'additionalProperties': False,
-            'properties': {'title': TEXT, 'hypothesis': TEXT, 'experiment': TEXT, 'evidenceIds': {'type': 'array', 'minItems': 1, 'maxItems': 5, 'items': {'type': 'string', 'enum': EVIDENCE_IDS}}},
+            'properties': {'title': TEXT, 'hypothesis': TEXT, 'experiment': TEXT, 'evidenceIds': {'type': 'array', 'minItems': 1, 'maxItems': 5, 'items': {'type': 'string', 'enum': LOCALIZATION_IDS}}},
             'required': ['title', 'hypothesis', 'experiment', 'evidenceIds']}},
         'plan': {'type': 'array', 'minItems': 3, 'maxItems': 3, 'items': {
             'type': 'object', 'additionalProperties': False,
@@ -50,7 +51,10 @@ profile.format, channel, goal에 맞춰 실용적인 제안을 만드세요.
 검색 관심도를 매출, 시장 규모, 국가별 성장률, 소비자 선호로 해석하지 마세요.
 현지화는 검증할 가설입니다. 맛·패키지·채널에 대한 가설 3개와 각각의 실험을 작성하세요.
 레시피 빈도는 요리 표본에 한정되며 국가의 일반적인 취향으로 단정하지 마세요.
-모든 현지화 항목의 evidenceIds에는 실제로 관련된 E1~E8만 연결하세요.
+현지화의 evidenceIds는 E1~E7 중 관련 근거만 허용합니다. E8은 국가 정보가 없어 현지화 문장이나 인용에 사용하지 말고, 자료 한계 설명에만 사용하세요.
+국가별 선호를 확인한 자료가 없습니다. 특정 국가 소비자가 어떤 맛·용량을 선호하거나 어떤 표시가 필수라고 단정하지 마세요.
+hypothesis는 확인할 실험 질문으로 쓰세요. 예: '기본 맛과 조정한 맛 중 어느 쪽의 재구매 의향이 높은지 확인한다.'
+실험 대상은 '현지 소비자 패널', '현지 온라인 채널 후보'처럼 일반적으로 표현하세요. 자료에 없는 기업·플랫폼·커뮤니티 이름이나 법적 요구를 만들지 마세요.
 Food.com 리뷰는 RecipeId로 연결한 제품 표본입니다. 다른 제품군 또는 전체 표본과 혼동하지 마세요.
 리뷰 키워드는 단어 등장 수로, 긍정·부정 감성이나 특정 국가 선호로 단정할 수 없습니다.
 별점의 분모는 유효 평점 수입니다. Food.com 원본은 과거 자료로 최신 수요를 뜻하지 않습니다.
@@ -110,8 +114,8 @@ def validate_output(value):
                 text_field(item, field)
             if key == 'localization':
                 ids = item.get('evidenceIds')
-                if not isinstance(ids, list) or not 1 <= len(ids) <= 5 or any(not isinstance(x, str) or x not in EVIDENCE_IDS for x in ids):
-                    raise ValueError('존재하지 않는 근거 번호가 포함되어 있습니다.')
+                if not isinstance(ids, list) or not 1 <= len(ids) <= 5 or any(not isinstance(x, str) or x not in LOCALIZATION_IDS for x in ids):
+                    raise ValueError('현지화에 사용할 수 없는 근거 번호가 포함되어 있습니다.')
     if not isinstance(value.get('risks'), list) or not 2 <= len(value['risks']) <= 5:
         raise ValueError('추가 검증 항목이 누락되었습니다.')
     for risk in value['risks']:
