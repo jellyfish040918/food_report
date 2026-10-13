@@ -18,7 +18,8 @@ class Problem(Exception):
         self.status,self.code,self.ko,self.en=status,code,ko,en
 
 class Store:
-    def __init__(self,path):
+    def __init__(self,path,operator_email=''):
+        self.operator_email=operator_email.strip().lower()
         self.path=str(path);Path(path).parent.mkdir(parents=True,exist_ok=True)
         with self.tx() as db:
             db.executescript('''
@@ -72,7 +73,7 @@ class Store:
             if count>limit:raise Problem(429,'rate_limit','요청이 많습니다. 잠시 후 다시 시도해 주세요.','Too many requests. Please try again later.')
             db.execute('INSERT OR REPLACE INTO rate_limits VALUES(?,?,?)',(key,now if count==1 else row['start'],count))
 
-    def entitlement(self,workspace,db=None):
+    def entitlement(self,workspace,db=None,*,user=None):
         w=dict(db.execute('SELECT * FROM workspaces WHERE id=?',(workspace,)).fetchone()) if db else self.one('SELECT * FROM workspaces WHERE id=?',(workspace,))
         now=time.time();plan=w['plan'];active=False
         if plan=='demo':active=True
@@ -82,9 +83,22 @@ class Store:
         seat_sql='SELECT count(*) n FROM members WHERE workspace=?'
         seats_used=db.execute(seat_sql,(workspace,)).fetchone()['n'] if db else self.one(seat_sql,(workspace,))['n']
         over_seats=seats_used>cap['seats'];active=active and not over_seats
+        # Only a server-designated, verified operator in a workspace they own.
+        # A customer's owner role or client-supplied email grants no exemption.
+        unlimited=False
+        if self.operator_email and user:
+            operator_sql="SELECT 1 FROM users u JOIN members m ON m.user=u.id WHERE u.id=? AND u.email=? AND u.verified=1 AND m.workspace=? AND m.role='owner'"
+            args=(user,self.operator_email,workspace)
+            unlimited=bool(db.execute(operator_sql,args).fetchone() if db else self.one(operator_sql,args))
         sql="SELECT count(*) n FROM jobs WHERE workspace=? AND cycle=? AND (charged=1 OR status IN ('queued','running','cancelling'))"
-        used=db.execute(sql,(workspace,cycle)).fetchone()['n'] if db else self.one(sql,(workspace,cycle))['n']
-        return {'plan':plan,'active':active,'limit':cap['runs'],'used':used,'remaining':max(0,cap['runs']-used),'seats':cap['seats'],'seatsUsed':seats_used,'overSeatLimit':over_seats,'cycle':cycle,'trialEnd':w['trial_end'],'periodEnd':w['period_end'],'billingStatus':w['billing_status'],'cancelAtEnd':bool(w['cancel_at_end'])}
+        args=(workspace,cycle)
+        if unlimited:
+            active=not over_seats;cycle='operator'
+            # Operator runs remain auditable without consuming teammates' quota.
+            sql="SELECT count(*) n FROM jobs WHERE workspace=? AND user=? AND (charged=1 OR status IN ('queued','running','cancelling'))"
+            args=(workspace,user)
+        used=db.execute(sql,args).fetchone()['n'] if db else self.one(sql,args)['n']
+        return {'plan':plan,'active':active,'unlimited':unlimited,'limit':None if unlimited else cap['runs'],'used':used,'remaining':None if unlimited else max(0,cap['runs']-used),'seats':cap['seats'],'seatsUsed':seats_used,'overSeatLimit':over_seats,'cycle':cycle,'trialEnd':None if unlimited else w['trial_end'],'periodEnd':w['period_end'],'billingStatus':w['billing_status'],'cancelAtEnd':bool(w['cancel_at_end'])}
 
     def enqueue(self,identity,kind,payload,key):
         wid,user=identity['workspace'],identity['user'];now=time.time();body=encode(payload);fingerprint=digest(kind+body)
@@ -93,8 +107,8 @@ class Store:
             if existing:
                 if existing['request_hash']!=fingerprint:raise Problem(409,'idempotency_conflict','중복 요청 키의 내용이 다릅니다.','Idempotency key already used with different content.')
                 return self.job_dict(existing)
-            access=self.entitlement(wid,db)
-            if not access['active'] or access['remaining']<=0:raise Problem(402,'quota','이용 기간이나 분석 한도를 확인해 주세요.','Your plan has expired or the run allowance is exhausted.')
+            access=self.entitlement(wid,db,user=user)
+            if not access['active'] or (not access['unlimited'] and access['remaining']<=0):raise Problem(402,'quota','이용 기간이나 분석 한도를 확인해 주세요.','Your plan has expired or the run allowance is exhausted.')
             if db.execute("SELECT count(*) FROM jobs WHERE workspace=? AND status IN ('queued','running','cancelling')",(wid,)).fetchone()[0]>=3:raise Problem(429,'queue_limit','워크스페이스에서 최대 3개 작업까지 대기할 수 있습니다.','Up to three active or queued runs per workspace.')
             if db.execute("SELECT count(*) FROM jobs WHERE status IN ('queued','running','cancelling')").fetchone()[0]>=50:raise Problem(503,'queue_full','분석 대기열이 가득 찼습니다. 잠시 후 다시 시도해 주세요.','The analysis queue is full. Try again shortly.')
             id=uid();db.execute('INSERT INTO jobs(id,workspace,user,kind,payload,status,stage,created,updated,idempotency,request_hash,cycle) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',(id,wid,user,kind,body,'queued','queued',now,now,key,fingerprint,access['cycle']))

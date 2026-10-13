@@ -2,7 +2,7 @@
 
 ## Intended release
 
-The first deployment is a **private pilot**, not a public paid SaaS launch. It uses the real `qwen3.5:9b` model, account authentication, company-scoped storage, durable jobs and the shipped source-grounding checks. Public registration, recovery email and checkout are closed. The provisioned owner receives the normal 14-day / 5-run trial. The existing `saas` mode still requires working email and Stripe configuration before launch.
+The first deployment is a **private pilot**, not a public paid SaaS launch. It uses the real `qwen3.5:9b` model, account authentication, company-scoped storage, durable jobs and the shipped source-grounding checks. Public registration, recovery email and checkout are closed. Ordinary accounts receive the normal 14-day / 5-run trial. The explicitly designated operator below has unlimited analysis runs and no trial expiry. The existing `saas` mode still requires working email and Stripe configuration before launch.
 
 The account's compute hard limit is **$10 per billing cycle**, with an $8 alert. Railway Agent spending is disabled separately; that feature is not FLAVO's model. Hitting the compute cap stops the service. It is not a promise that $10 buys a full month of AI availability. Check invoice currency, taxes and actual metered usage in Railway.
 
@@ -45,7 +45,10 @@ OLLAMA_HOST=http://flavo-model.railway.internal:11434
 PORT=4175
 RAILWAY_RUN_UID=0
 FLAVO_PILOT_EMAIL=owner@flavo.local
+FLAVO_OPERATOR_EMAIL=owner@flavo.local
 ```
+
+`FLAVO_OPERATOR_EMAIL` exempts only that verified user in workspaces they own. It does not upgrade other workspace owners or members, change billing plans, or bypass authentication, seat, queue, rate or Railway budget limits. New operator runs are recorded separately from customer quota. Remove the variable and redeploy to revoke the exemption; accounts and research are preserved. Never configure an unclaimed public address as the operator.
 
 Set `FLAVO_PILOT_PASSWORD` directly in the provider's secret Variables UI (12–128 characters). Do not commit it. Generate the web domain; Railway supplies `RAILWAY_PUBLIC_DOMAIN`, from which the start script derives `FLAVO_PUBLIC_URL`. Do not put a GitHub Pages URL here. The runtime requires the actual `/app/var` volume, fixes only that directory's ownership, and drops root before handling requests. It never publishes the development demo or imports the developer's local database.
 

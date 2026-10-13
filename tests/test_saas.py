@@ -37,7 +37,7 @@ PASSWORD = 'only-a-disposable-test-password'
 class SaaSTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.cfg = Settings(database=str(Path(self.temp.name)/'test.sqlite3'), run_worker=False,
+        self.cfg = Settings(database=str(Path(self.temp.name)/'test.sqlite3'), run_worker=False, operator_email='operator@example.test',
                             stripe_key='', stripe_webhook='', prices={'starter':'','team':''}, smtp_host='')
         self.app = create_app(self.cfg)
         self.store = self.app.state.store
@@ -139,6 +139,42 @@ class SaaSTests(unittest.TestCase):
         reopened=Store(self.cfg.database)
         self.assertEqual(len(reopened.reports(c.identity['workspace'])),5)
         self.assertEqual(reopened.entitlement(c.identity['workspace'])['remaining'],0)
+
+    def test_operator_unlimited_after_trial_expiry_without_customer_privilege_leak(self):
+        operator=self.client('operator@example.test');customer=self.client('customer@example.test')
+        self.store.execute('UPDATE workspaces SET trial_end=0')
+        for i in range(7):
+            self.enqueue(operator,f'operator-run-{i:012d}')
+            job=self.store.claim();self.store.finish(job,result={'profile':PROFILE})
+        for path in ['/api/session','/api/workspace']:
+            usage=operator.get(path).json()['usage']
+            self.assertTrue(usage['unlimited']);self.assertTrue(usage['active'])
+            self.assertIsNone(usage['limit']);self.assertIsNone(usage['remaining']);self.assertIsNone(usage['trialEnd'])
+            self.assertEqual(usage['used'],7)
+        self.assertEqual(len(operator.get('/api/reports').json()['reports']),7)
+        self.assertFalse(customer.get('/api/session').json()['usage']['unlimited'])
+        spoofed=copy.deepcopy(INPUT);spoofed.update(operator=True,email='operator@example.test',unlimited=True)
+        self.assertEqual(customer.post('/api/jobs',json=spoofed,headers={'Idempotency-Key':'spoof-operator-12345'}).status_code,402)
+        self.assertFalse(self.store.entitlement(customer.identity['workspace'],user=operator.identity['user'])['unlimited'])
+        self.assertEqual(self.store.entitlement(operator.identity['workspace'])['used'],0)
+        # Revocation needs only a config change, never a database/account reset.
+        self.cfg.operator_email=''
+        revoked=create_app(self.cfg).state.store.entitlement(operator.identity['workspace'],user=operator.identity['user'])
+        self.assertFalse(revoked['active']);self.assertFalse(revoked['unlimited'])
+
+    def test_operator_keeps_verification_membership_and_queue_boundaries(self):
+        operator=self.client('operator@example.test');wid=operator.identity['workspace'];user=operator.identity['user']
+        self.store.execute('UPDATE users SET verified=0 WHERE id=?',(user,))
+        self.assertFalse(self.store.entitlement(wid,user=user)['unlimited'])
+        self.assertEqual(operator.get('/api/workspace').status_code,401)
+        self.store.execute('UPDATE users SET verified=1 WHERE id=?',(user,))
+        self.store.execute("UPDATE members SET role='member' WHERE user=?",(user,))
+        self.assertFalse(self.store.entitlement(wid,user=user)['unlimited'])
+        self.store.execute("UPDATE members SET role='owner' WHERE user=?",(user,))
+        for i in range(3):self.enqueue(operator,f'operator-queue-{i:012d}')
+        response=operator.post('/api/jobs',json=INPUT,headers={'Idempotency-Key':'operator-queue-full'})
+        self.assertEqual(response.status_code,429)
+        self.assertIn('queue_limit',response.text)
 
     def test_atomic_reservation_does_not_oversubscribe(self):
         c=self.client('one@example.test')

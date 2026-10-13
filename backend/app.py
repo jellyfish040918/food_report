@@ -33,7 +33,7 @@ async def body(request):
     except (ValueError,UnicodeError):raise Problem(422,'json','요청 형식을 확인해 주세요.','Invalid JSON object.')
 
 def create_app(settings=None):
-    cfg=settings or Settings();cfg.validate();store=Store(cfg.database);auth=Identity(store,cfg);billing=Billing(store,cfg);runner=Runner(store,cfg)
+    cfg=settings or Settings();cfg.validate();store=Store(cfg.database,operator_email=cfg.operator_email);auth=Identity(store,cfg);billing=Billing(store,cfg);runner=Runner(store,cfg)
     @asynccontextmanager
     async def lifespan(app):
         with WorkerLease(cfg.database) if cfg.run_worker else nullcontext():
@@ -70,7 +70,7 @@ def create_app(settings=None):
 
     def clientkey(request,prefix):return prefix+':'+(request.client.host if request.client else 'unknown')
     def session_payload(identity):
-        return {'authenticated':True,'user':{'id':identity['user'],'name':identity['name'],'email':identity['email']},'workspace':{'id':identity['workspace'],'name':identity['workspace_name'],'role':identity['role']},'csrf':identity['csrf'],'usage':store.entitlement(identity['workspace']),'billingEnabled':billing.enabled,'environment':'production' if cfg.production else 'development'}
+        return {'authenticated':True,'user':{'id':identity['user'],'name':identity['name'],'email':identity['email']},'workspace':{'id':identity['workspace'],'name':identity['workspace_name'],'role':identity['role']},'csrf':identity['csrf'],'usage':store.entitlement(identity['workspace'],user=identity['user']),'billingEnabled':billing.enabled,'environment':'production' if cfg.production else 'development'}
     @app.get('/api/session')
     def session(request:Request):
         identity=auth.resolve(request,False)
@@ -161,7 +161,7 @@ def create_app(settings=None):
     @app.get('/api/workspace')
     def workspace(request:Request):
         identity=auth.resolve(request);wid=identity['workspace']
-        return {'name':identity['workspace_name'],'role':identity['role'],'usage':store.entitlement(wid),'billingEnabled':billing.enabled,'emailEnabled':bool(cfg.smtp_host and cfg.mail_from),'members':store.all('SELECT u.name,u.email,m.role FROM members m JOIN users u ON u.id=m.user WHERE m.workspace=? ORDER BY m.role DESC',(wid,)),'audit':store.all('SELECT action,target,created FROM audit WHERE workspace=? ORDER BY id DESC LIMIT 25',(wid,)) if identity['role']=='owner' else [],'plans':[{'id':p,**limits,'configured':bool(cfg.prices.get(p))} for p,limits in PLANS.items() if p in ('starter','team')]}
+        return {'name':identity['workspace_name'],'role':identity['role'],'usage':store.entitlement(wid,user=identity['user']),'billingEnabled':billing.enabled,'emailEnabled':bool(cfg.smtp_host and cfg.mail_from),'members':store.all('SELECT u.name,u.email,m.role FROM members m JOIN users u ON u.id=m.user WHERE m.workspace=? ORDER BY m.role DESC',(wid,)),'audit':store.all('SELECT action,target,created FROM audit WHERE workspace=? ORDER BY id DESC LIMIT 25',(wid,)) if identity['role']=='owner' else [],'plans':[{'id':p,**limits,'configured':bool(cfg.prices.get(p))} for p,limits in PLANS.items() if p in ('starter','team')]}
     @app.post('/api/workspace/invite')
     async def invite(request:Request):
         identity=auth.resolve(request);auth.owner(identity);store.throttle('invite:'+identity['workspace'],5,3600);payload=await body(request);address=email(payload.get('email'));access=store.entitlement(identity['workspace'])

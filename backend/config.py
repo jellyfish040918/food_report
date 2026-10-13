@@ -13,6 +13,7 @@ class Settings:
     production: bool = field(default_factory=lambda: os.getenv('FLAVO_ENV') == 'production')
     origin: str = field(default_factory=lambda: os.getenv('FLAVO_PUBLIC_URL', 'http://127.0.0.1:4175').rstrip('/'))
     database: str = field(default_factory=lambda: os.getenv('FLAVO_DATABASE', str(ROOT / 'var/flavo.sqlite3')))
+    operator_email: str = field(default_factory=lambda: os.getenv('FLAVO_OPERATOR_EMAIL', '').strip().lower())
     model: str = field(default_factory=lambda: os.getenv('FLAVO_MODEL', 'qwen3.5:9b'))
     model_keep_alive: str = field(default_factory=lambda: os.getenv('FLAVO_MODEL_KEEP_ALIVE', '5m'))
     model_context: int = field(default_factory=lambda: int(os.getenv('FLAVO_MODEL_CONTEXT', '16384')))
